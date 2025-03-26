@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 import * as path from "path";
 
 import * as Dotenv from "dotenv-webpack";

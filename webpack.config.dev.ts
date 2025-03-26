@@ -15,7 +15,9 @@ const developmentConfig: webpack.Configuration = {
       exclude: /^vendor.*.\.js$/,
       filename: "[file].map",
     }),
-    new Dotenv(),
+    new Dotenv({
+      path: "./.env",
+    }),
   ],
 };
 

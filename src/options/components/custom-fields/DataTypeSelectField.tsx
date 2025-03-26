@@ -84,6 +84,8 @@ const DataTypeSelectField = () => {
                   <option value="number">{GetMessage("customFields_dataType_number")}</option>
                   <option value="date">{GetMessage("customFields_dataType_date")}</option>
                   <option value="url">{GetMessage("customFields_dataType_url")}</option>
+                  <option value="street_address">{GetMessage("customFields_dataType_streetAddress")}</option>
+                  <option value="country">{GetMessage("customFields_dataType_Country")}</option>
                 </optgroup>
                 <optgroup label={GetMessage("customFields_dataType_otherLabel")}>
                   <option value="text">{GetMessage("customFields_dataType_text")}</option>

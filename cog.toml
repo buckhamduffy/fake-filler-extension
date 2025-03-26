@@ -1,0 +1,18 @@
+ignore_merge_commits = true
+branch_whitelist = ["main"]
+pre_bump_hooks = [
+  "node ./bump-version.js {{version}}"
+]
+post_bump_hooks = []
+tag_prefix = "v"
+
+[commit_types]
+chore = { changelog_title = "Chore" }
+ci = { changelog_title = "CI" }
+deps = { changelog_title = "Dependency Updates", bump_minor = true }
+
+[changelog]
+path = "CHANGELOG.md"
+authors = []
+
+[bump_profiles]

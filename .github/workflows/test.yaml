@@ -1,0 +1,23 @@
+name: Test
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install
+
+      - run: echo "VERSION=0.0.0-dev" > .env.production
+
+      - name: Build Chrome
+        run: bun run build-chrome

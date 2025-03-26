@@ -1,3 +1,4 @@
+// @ts-nocheck
 import * as path from "path";
 
 import * as webpack from "webpack";
@@ -7,12 +8,14 @@ const CopyWebpackPlugin = require("copy-webpack-plugin");
 const cssnano = require("cssnano");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 
+const browser = process.env.BROWSER || "chrome";
+
 const webpackConfig: webpack.Configuration = {
   cache: false,
   entry: {
-    "service_worker": [
+    service_worker: [
       path.join(__dirname, "src/background/regeneratorRuntime.js"),
-      path.join(__dirname, "src/service_worker/index.ts")
+      path.join(__dirname, "src/service_worker/index.ts"),
     ],
     "build/content-script": path.join(__dirname, "src/content_script/index.ts"),
     "build/options": path.join(__dirname, "src/options/index.tsx"),
@@ -43,6 +46,26 @@ const webpackConfig: webpack.Configuration = {
         ],
       },
       {
+        test: /\.js$/,
+        include: /node_modules\/@faker-js\/faker/,
+        use: {
+          loader: "babel-loader",
+          options: {
+            presets: ["@babel/preset-env"],
+          },
+        },
+      },
+      {
+        test: /\.js$/,
+        include: /node_modules\/@sentry/,
+        use: {
+          loader: "babel-loader",
+          options: {
+            presets: ["@babel/preset-env"],
+          },
+        },
+      },
+      {
         loader: "file-loader",
         exclude: [/\.(html?)$/, /\.(ts|tsx|js|jsx)$/, /\.css$/, /\.scss$/, /\.json$/],
         query: {
@@ -58,7 +81,8 @@ const webpackConfig: webpack.Configuration = {
     path: path.join(__dirname, "dist"),
   },
   plugins: [
-    new webpack.IgnorePlugin(/^\.\/locale$/, /moment$/),
+    // new webpack.IgnorePlugin(/^\.\/locale$/, /moment$/),
+    new webpack.IgnorePlugin({ resourceRegExp: /^\.\/locale$/, contextRegExp: /moment$/ }),
     new MiniCssExtractPlugin({
       filename: "[name].css",
     }),
@@ -69,7 +93,21 @@ const webpackConfig: webpack.Configuration = {
           from: "**/*",
           to: path.join(__dirname, "dist/"),
         },
-      ],
+        browser === "chrome"
+          ? {
+              context: "public",
+              from: "manifest.chrome.json",
+              to: path.join(__dirname, "dist/manifest.json"),
+            }
+          : null,
+        browser === "firefox"
+          ? {
+              context: "public",
+              from: "manifest.firefox.json",
+              to: "manifest.json",
+            }
+          : null,
+      ].filter((x) => x !== null),
     }),
   ],
   resolve: {

@@ -4,33 +4,36 @@ import cssesc from "cssesc";
 import moment from "moment";
 import RandExp from "randexp";
 
-import DataGenerator from "src/common/data-generator";
-import { SanitizeText, DEFAULT_EMAIL_CUSTOM_FIELD } from "src/common/helpers";
-import { IFakeFillerOptions, ICustomField, CustomFieldTypes } from "src/types";
+import FileFiller from "./file-filler";
 
-type FillableElement = HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
+import { checkElementForWord, checkSelectHasValue } from "./utils/element";
+
+import { blank } from "./utils/value";
+
+import DataGenerator from "src/common/data-generator";
+import { DEFAULT_EMAIL_CUSTOM_FIELD, SanitizeText } from "src/common/helpers";
+import { CustomFieldTypes, ICustomField, IFakeFillerOptions } from "src/types";
+
+export type FillableElement = HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
 
 class ElementFiller {
   private generator: DataGenerator;
+  private fileFiller: FileFiller;
   private options: IFakeFillerOptions;
   private profileIndex: number;
 
-  private previousValue: string;
-  private previousPassword: string;
-  private previousUsername: string;
-  private previousFirstName: string;
-  private previousLastName: string;
+  private previousValue: string | null = null;
+  private previousPassword: string | null = null;
+  private previousUsername: string | null = null;
+  private previousFirstName: string | null = null;
+  private previousLastName: string | null = null;
+  private previousDate: string | null = null;
 
   constructor(options: IFakeFillerOptions, profileIndex = -1) {
     this.options = options;
     this.profileIndex = profileIndex;
     this.generator = new DataGenerator();
-
-    this.previousValue = "";
-    this.previousPassword = "";
-    this.previousUsername = "";
-    this.previousFirstName = "";
-    this.previousLastName = "";
+    this.fileFiller = new FileFiller();
   }
 
   private fireEvents(element: FillableElement): void {
@@ -38,6 +41,12 @@ class ElementFiller {
       const changeEvent = new Event(event, { bubbles: true, cancelable: true });
       element.dispatchEvent(changeEvent);
     });
+  }
+
+  private fireEventsIfEnabled(element: FillableElement): void {
+    if (this.options.triggerClickEvents) {
+      this.fireEvents(element);
+    }
   }
 
   private isAnyMatch(haystack: string, needles: string[]): boolean {
@@ -49,33 +58,12 @@ class ElementFiller {
     return false;
   }
 
-  private isElementVisible(element: FillableElement): boolean {
-    // BEGIN Docassemble specific code
-    if (element.className.includes("labelauty")) {
-      // this tells us it's a Docassemble input
-      // it's visible unless it's behind a showif
-      if (
-        element.parentNode &&
-        element.parentNode.parentNode &&
-        element.parentNode.parentNode.parentNode &&
-        element.parentNode.parentNode.parentNode.parentNode
-      ) {
-        const showifContainer = element.parentNode.parentNode.parentNode.parentNode as FillableElement;
-        if (showifContainer.className.includes("dashowif")) {
-          return this.isElementVisible(showifContainer); // check to see if the 4th grandparent container is visible
-        }
-      }
-      return true;
-    }
-    // END Docassemble specific code
-
+  private isElementVisible(element: HTMLElement): boolean {
     if (!element.offsetHeight && !element.offsetWidth) {
       return false;
     }
-    if (window.getComputedStyle(element).visibility === "hidden") {
-      return false;
-    }
-    return true;
+
+    return window.getComputedStyle(element).visibility !== "hidden";
   }
 
   private shouldIgnoreElement(element: FillableElement): boolean {
@@ -85,6 +73,10 @@ class ElementFiller {
 
     // Ignore any invisible elements.
     if (this.options.ignoreHiddenFields && !this.isElementVisible(element)) {
+      return true;
+    }
+
+    if (element.className.includes("multiselect-tags-search")) {
       return true;
     }
 
@@ -102,6 +94,10 @@ class ElementFiller {
         }
       }
 
+      if (element.type === "select-one") {
+        return checkSelectHasValue(element as HTMLSelectElement);
+      }
+
       // All elements excluding radio buttons and check boxes will be ignored if they have a value.
       if (element.type !== "checkbox" && element.type !== "radio") {
         const elementValue = element.value;
@@ -109,6 +105,8 @@ class ElementFiller {
           return true;
         }
       }
+
+      return !blank(element.value);
     }
 
     // If all above checks have failed, we do not need to ignore this element.
@@ -164,14 +162,14 @@ class ElementFiller {
         elementName,
         matchTypes
       );
+
+      if (foundField) {
+        return foundField;
+      }
     }
 
     // If a custom field could not be found from the profile, try getting one from the default list.
-    if (!foundField) {
-      foundField = this.findCustomFieldFromList(this.options.fields, elementName, matchTypes);
-    }
-
-    return foundField;
+    return this.findCustomFieldFromList(this.options.fields, elementName, matchTypes);
   }
 
   private NormalizeTextForElementName(text: string): string {
@@ -285,91 +283,21 @@ class ElementFiller {
         return `${this.previousFirstName} ${this.previousLastName}`;
       }
 
+      case "street_address": {
+        return this.generator.streetAddress();
+      }
+
+      case "country": {
+        return this.generator.country();
+      }
+
       case "email": {
-        let username = "";
-
-        switch (customField.emailUsername) {
-          case "list": {
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-            const usernames = customField.emailUsernameList || DEFAULT_EMAIL_CUSTOM_FIELD.emailUsernameList!;
-            username = usernames[Math.floor(Math.random() * usernames.length)];
-            break;
-          }
-
-          case "username": {
-            if (this.previousUsername.length > 0) {
-              username = SanitizeText(this.previousUsername);
-            }
-            break;
-          }
-
-          case "name": {
-            if (this.previousFirstName.length > 0) {
-              username = SanitizeText(this.previousFirstName);
-            }
-            if (this.previousLastName.length > 0) {
-              if (username.length > 0) {
-                username += `.${SanitizeText(this.previousLastName)}`;
-              } else {
-                username = SanitizeText(this.previousLastName);
-              }
-            }
-            break;
-          }
-
-          case "regex": {
-            try {
-              if (customField.emailUsernameRegEx) {
-                const regExGenerator = new RandExp(customField.emailUsernameRegEx);
-                regExGenerator.defaultRange.add(0, 65535);
-                username = regExGenerator.gen();
-              }
-            } catch (ex) {
-              // Do nothing.
-            }
-            break;
-          }
-
-          default:
-            break;
-        }
-
-        if (!username || username.length === 0) {
-          username = this.generator.scrambledWord(4, 10).toLowerCase();
-        }
-
-        let domain = "";
-
-        if (customField.emailHostname === "list") {
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-          const hostnames = customField.emailHostnameList || DEFAULT_EMAIL_CUSTOM_FIELD.emailHostnameList!;
-          const randomNumber = Math.floor(Math.random() * hostnames.length);
-          domain = hostnames[randomNumber];
-        }
-
-        if (!domain || domain.length === 0) {
-          domain = `${this.generator.scrambledWord().toLowerCase()}.com`;
-        }
-
-        if (domain.indexOf("@") === -1) {
-          domain = `@${domain}`;
-        }
-
-        let prefix = "";
-
-        if (customField.emailPrefix) {
-          prefix = customField.emailPrefix;
-        }
-
-        let suffix = "";
-
-        if (customField.emailSuffix) {
-          suffix = customField.emailSuffix;
-        }
-
-        suffix = suffix.replace(/\[hostname\]/g, window.location.hostname);
-
-        return prefix + username + suffix + domain;
+        return this.generator.emailConfig(customField, {
+          previousFirstName: this.previousFirstName,
+          previousLastName: this.previousLastName,
+          previousUsername: this.previousUsername,
+          previousValue: this.previousValue,
+        });
       }
 
       case "organization": {
@@ -388,36 +316,7 @@ class ElementFiller {
       }
 
       case "date": {
-        let minDate: Date | undefined;
-        let maxDate: Date | undefined;
-
-        if (customField.minDate) {
-          minDate = moment(customField.minDate).toDate();
-        } else if (!Number.isNaN(Number(customField.min))) {
-          minDate = moment(new Date()).add(customField.min, "days").toDate();
-        }
-
-        if (customField.maxDate) {
-          maxDate = moment(customField.maxDate).toDate();
-        } else if (!Number.isNaN(Number(customField.max))) {
-          maxDate = moment(new Date()).add(customField.max, "days").toDate();
-        }
-
-        if (element && element.type === "date") {
-          const dateElement = element as HTMLInputElement;
-
-          if (dateElement.min && moment(dateElement.min).isValid()) {
-            minDate = moment(dateElement.min).toDate();
-          }
-
-          if (dateElement.max && moment(dateElement.max).isValid()) {
-            maxDate = moment(dateElement.max).toDate();
-          }
-
-          return this.generator.date(minDate, maxDate);
-        }
-
-        return moment(this.generator.date(minDate, maxDate)).format(customField.template);
+        return this.generateDummyDataForDate(element as HTMLInputElement, customField);
       }
 
       case "url": {
@@ -484,24 +383,6 @@ class ElementFiller {
         } else {
           element.checked = Math.random() > 0.5;
         }
-
-        // docassemble version of this selector:
-        /*
-        if (this.isAnyMatch(this.getElementName(element), this.options.agreeTermsFields)) {
-          let label: HTMLElement = element.nextElementSibling as HTMLElement;
-          if (label) {
-            label.click();
-          }
-          if (element.value && element.value == "false") {
-            element.value = "true";
-          }
-        } else {
-          let label: HTMLElement = element.nextElementSibling as HTMLElement;
-          if (label) {
-            label.click();
-          } 
-        }
-        */
 
         break;
       }
@@ -593,6 +474,7 @@ class ElementFiller {
       }
 
       case "week":
+        // eslint-disable-next-line no-case-declarations
         const weekCustomField = this.findCustomField(this.getElementName(element), [
           "alphanumeric",
           "regex",
@@ -607,7 +489,7 @@ class ElementFiller {
         break;
 
       case "email": {
-        if (this.isAnyMatch(this.getElementName(element), this.options.confirmFields)) {
+        if (this.isAnyMatch(this.getElementName(element), this.options.confirmFields) && this.previousValue) {
           element.value = this.previousValue;
         } else {
           let emailCustomField = this.findCustomField(this.getElementName(element), ["email"]);
@@ -652,7 +534,7 @@ class ElementFiller {
       }
 
       case "password": {
-        if (this.isAnyMatch(this.getElementName(element), this.options.confirmFields)) {
+        if (this.isAnyMatch(this.getElementName(element), this.options.confirmFields) && this.previousPassword) {
           element.value = this.previousPassword;
         } else {
           if (this.options.passwordSettings.mode === "defined") {
@@ -742,54 +624,13 @@ class ElementFiller {
 
       case "file": {
         if (this.options.uploadFiles) {
-          const dataTransfer = new DataTransfer();
-
-          // es-lint-disable-next-line:max-line-length
-          const pngFile = new File(
-            [
-              "data:image/png;base64,R0lGODlhDAAMAKIFAF5LAP/zxAAAANyuAP/gaP///wAAAAAAACH5BAEAAAUALAAAAAAMAAwAAAMlWLPcGjDKFYi9lxKBOaGcF35DhWHamZUW0K4mAbiwWtuf0uxFAgA7",
-            ],
-            "testFile.png",
-            { type: "image/png" }
-          );
-          // es-lint-disable-next-line:max-line-length
-          const pdfFile = new File(
-            [
-              "data:application/pdf;base64,JVBERi0xLjAKMSAwIG9iajw8L1BhZ2VzIDIgMCBSPj5lbmRvYmogMiAwIG9iajw8L0tpZHNbMyAw\nIFJdL0NvdW50IDE+PmVuZG9iaiAzIDAgb2JqPDwvTWVkaWFCb3hbMCAwIDMgM10+PmVuZG9iagp0\ncmFpbGVyPDwvUm9vdCAxIDAgUj4+Cg==",
-            ],
-            "testFile.pdf",
-            { type: "application/pdf" }
-          );
-          const txtFile = new File(["Hello world!"], "testFile.txt", { type: "text/plain" });
-
-          if (element.accept === "image/*" || element.accept.includes("png")) {
-            dataTransfer.items.add(pngFile);
-            if (!element.multiple) {
-              element.files = dataTransfer.files;
-              break;
-            }
-          } else if (element.accept.includes("pdf")) {
-            dataTransfer.items.add(pdfFile);
-            if (!element.multiple) {
-              element.files = dataTransfer.files;
-              break;
-            }
-          } else {
-            dataTransfer.items.add(txtFile);
-            if (!element.multiple) {
-              element.files = dataTransfer.files;
-              break;
-            }
-            dataTransfer.items.add(txtFile);
-          }
-
-          element.files = dataTransfer.files;
+          this.fileFiller.fillInput(element);
         }
         break;
       }
 
       default: {
-        if (this.isAnyMatch(this.getElementName(element), this.options.confirmFields)) {
+        if (this.isAnyMatch(this.getElementName(element), this.options.confirmFields) && this.previousValue) {
           element.value = this.previousValue;
         } else {
           const customField = this.findCustomField(this.getElementName(element));
@@ -833,8 +674,15 @@ class ElementFiller {
       return;
     }
 
-    let valueExists = false;
-    let valueSelected = false;
+    const options = Array.from(element.options)
+      .filter((option) => !option.disabled)
+      .map((option) => option.value)
+      .filter((option) => option !== null && option !== "");
+
+    if (!options.length) {
+      return;
+    }
+
     const matchingCustomField = this.findCustomField(this.getElementName(element));
 
     // If a custom field exists for this element, we use that to determine the value.
@@ -842,59 +690,37 @@ class ElementFiller {
     if (matchingCustomField) {
       const value = this.generateDummyDataForCustomField(matchingCustomField);
 
-      for (let i = 0; i < element.options.length; i += 1) {
-        if (element.options[i].value === value) {
-          element.options[i].selected = true;
-          valueExists = true;
-          valueSelected = true;
-          break;
-        }
+      if (options.includes(value)) {
+        element.value = value;
+        this.fireEventsIfEnabled(element);
+        return;
       }
     }
 
-    if (!valueExists) {
-      const optionsCount = element.options.length;
-      const skipFirstOption = !!element.options[0].value === false;
+    if (!element.multiple) {
+      element.value = this.generator.randomElement(options);
+      this.fireEventsIfEnabled(element);
+      return;
+    }
 
-      if (element.multiple) {
-        // Unselect any existing options.
-        for (let i = 0; i < optionsCount; i += 1) {
-          if (!element.options[i].disabled) {
-            element.options[i].selected = false;
-          }
-        }
+    const optionsCount = element.options.length;
 
-        // Select a random number of options.
-        const numberOfOptionsToSelect = this.generator.randomNumber(1, optionsCount);
-
-        for (let i = 0; i < numberOfOptionsToSelect; i += 1) {
-          if (!element.options[i].disabled) {
-            element.options[this.generator.randomNumber(1, optionsCount - 1)].selected = true;
-            valueSelected = true;
-          }
-        }
-      } else {
-        // Select a random option as long as it is not disabled.
-        // If it is disabled, continue finding a random option that can be selected.
-
-        let iterations = 0;
-
-        while (iterations < optionsCount) {
-          const randomOptionIndex = this.generator.randomNumber(skipFirstOption ? 1 : 0, optionsCount - 1);
-
-          if (!element.options[randomOptionIndex].disabled) {
-            element.options[randomOptionIndex].selected = true;
-            valueSelected = true;
-            break;
-          } else {
-            iterations += 1;
-          }
-        }
+    // Unselect any existing options.
+    for (let i = 0; i < optionsCount; i += 1) {
+      if (!element.options[i].disabled) {
+        element.options[i].selected = false;
       }
     }
 
-    if (valueSelected && this.options.triggerClickEvents) {
-      this.fireEvents(element);
+    // Select a random number of options.
+    const numberOfOptionsToSelect = this.generator.randomNumber(1, optionsCount);
+
+    for (let i = 0; i < numberOfOptionsToSelect; i += 1) {
+      const index = this.generator.randomNumber(0, optionsCount - 1);
+      if (!element.options[index].disabled) {
+        element.options[index].selected = true;
+        this.fireEventsIfEnabled(element);
+      }
     }
   }
 
@@ -902,6 +728,92 @@ class ElementFiller {
     if ((element as HTMLElement).isContentEditable) {
       element.textContent = this.generator.paragraph(5, 100, 0, this.options.defaultMaxLength);
     }
+  }
+
+  public fillMultiSelectElement(element: HTMLElement) {
+    const clear = element.querySelector(".multiselect-clear-icon") as HTMLElement | null;
+    if (clear) {
+      clear.click();
+    }
+
+    const options: string[] = [];
+    element.querySelectorAll(".multiselect-options li.multiselect-option").forEach((option: Element): void => {
+      const label = option.getAttribute("aria-label");
+      if (label) {
+        options.push(label);
+      }
+    });
+
+    if (!options.length) {
+      return;
+    }
+
+    const selectedOption = this.generator.randomElement<string>(options);
+
+    const input = element.querySelector("input");
+    if (!input) {
+      return;
+    }
+
+    const firstOption = element.querySelector(
+      `li.multiselect-option[aria-label="${selectedOption}"]`
+    ) as HTMLElement | null;
+    if (firstOption) {
+      firstOption.click();
+    }
+  }
+
+  private generateDummyDataForDate(element: HTMLInputElement | undefined, customField: ICustomField): string {
+    let minDate: Date | undefined;
+    let maxDate: Date | undefined;
+
+    const isStartDate = element ? checkElementForWord(element, ["start", "from"]) : false;
+    const isEndDate = element ? checkElementForWord(element, ["end", "to"]) : false;
+
+    if (customField.minDate) {
+      minDate = moment(customField.minDate).toDate();
+    } else if (!Number.isNaN(Number(customField.min))) {
+      minDate = moment(new Date()).add(customField.min, "days").toDate();
+    }
+
+    if (customField.maxDate) {
+      maxDate = moment(customField.maxDate).toDate();
+    } else if (!Number.isNaN(Number(customField.max))) {
+      maxDate = moment(new Date()).add(customField.max, "days").toDate();
+    }
+
+    if (isEndDate) {
+      if (this.previousDate) {
+        minDate = moment(this.previousDate).toDate();
+        if (maxDate && moment(maxDate).isBefore(minDate)) {
+          maxDate = moment(minDate).add(1, "month").toDate();
+        }
+      }
+    }
+
+    const format = (element?.type === "date" ? "YYYY-MM-DD" : customField.template) || "DD-MM-YYYY";
+
+    if (element?.type === "date") {
+      if (element.min && moment(element.min).isValid()) {
+        minDate = moment(element.min).toDate();
+      }
+
+      if (element.max && moment(element.max).isValid()) {
+        maxDate = moment(element.max).toDate();
+      }
+    }
+
+    const value = moment(this.generator.date(minDate, maxDate)).format(format);
+
+    if (isStartDate) {
+      this.previousDate = value;
+    }
+
+    if (isEndDate) {
+      this.previousDate = null;
+    }
+
+    return value;
   }
 }
 

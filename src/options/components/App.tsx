@@ -1,12 +1,11 @@
 import React from "react";
 import { Nav, Navbar } from "react-bootstrap";
 import { useDispatch } from "react-redux";
-import { Link, NavLink, Route } from "react-router-dom";
+import { NavLink, Route } from "react-router-dom";
 
 import { GetMessage, FakeFillerDefaultOptions } from "src/common/helpers";
 import { saveOptions } from "src/options/actions";
 import BackupAndRestorePage from "src/options/components/BackupAndRestorePage";
-import ChangeLogPage from "src/options/components/ChangeLogPage";
 import CustomFieldsPage from "src/options/components/CustomFieldsPage";
 import GeneralSettingsPage from "src/options/components/GeneralSettingsPage";
 import KeyboardShortcutsPage from "src/options/components/KeyboardShortcutsPage";
@@ -19,7 +18,8 @@ import "src/options/components/App.scss";
 function App() {
   const dispatch = useDispatch();
 
-  const sendFeedbackMessage = chrome.i18n.getMessage("leftNav_sendFeedback", ["james.thomas.hays@gmail.com"]);
+  const sendFeedbackMessage = chrome.i18n.getMessage("leftNav_sendFeedback", ["support@buckhamduffy.com"]);
+  const version = process.env.VERSION;
 
   function handleResetSettings(event: React.SyntheticEvent): void {
     event.preventDefault();
@@ -36,7 +36,7 @@ function App() {
       <ScrollToTop />
       <Navbar bg="dark" variant="dark" expand="lg">
         <Navbar.Brand>
-          <img src="images/logo-white.svg" height="30" alt={GetMessage("extensionName")} />
+          <img src="images/logo.svg" height="30" alt={GetMessage("extensionName")} />
         </Navbar.Brand>
         <Navbar.Toggle aria-controls="main-navbar-nav" />
         <Navbar.Collapse id="main-navbar-nav">
@@ -53,7 +53,7 @@ function App() {
             <Nav.Link as={NavLink} to="/backup">
               {GetMessage("leftNav_backupRestore")}
             </Nav.Link>
-            <Nav.Link href="https://github.com/calvinballing/fake-filler-extension/wiki" target="_blank">
+            <Nav.Link href="https://github.com/buckhamduffy/fake-filler-extension/wiki" target="_blank">
               Help
             </Nav.Link>
           </Nav>
@@ -64,9 +64,9 @@ function App() {
         <Route path="/custom-fields/:index?" component={CustomFieldsPage} />
         <Route path="/keyboard-shortcuts" component={KeyboardShortcutsPage} />
         <Route path="/backup" component={BackupAndRestorePage} />
-        <Route path="/changelog" component={ChangeLogPage} />
       </div>
       <footer id="main-footer" className="container">
+        <div>B&D Fake Filler {version}</div>
         <HtmlPhrase phrase={sendFeedbackMessage} as="p" />
         <ul className="list-inline">
           <li className="list-inline-item">
@@ -76,10 +76,12 @@ function App() {
             </a>
           </li>
           <li className="list-inline-item">
-            <Link to="/changelog">{GetMessage("leftNav_changelog")}</Link>
+            <ExternalLink url="https://github.com/buckhamduffy/fake-filler-extension/blob/main/CHANGELOG.md">
+              {GetMessage("leftNav_changelog")}
+            </ExternalLink>
           </li>
           <li className="list-inline-item">
-            <ExternalLink url="https://github.com/calvinballing/fake-filler-extension/issues">
+            <ExternalLink url="https://github.com/buckhamduffy/fake-filler-extension/issues">
               {GetMessage("leftNav_issueTracker")}
             </ExternalLink>
           </li>

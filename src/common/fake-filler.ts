@@ -1,3 +1,7 @@
+import RepeatableFiller from "./repeatable-filler";
+
+import { checkSelectHasValue } from "./utils/element";
+
 import ElementFiller from "src/common/element-filler";
 import { IFakeFillerOptions } from "src/types";
 
@@ -5,10 +9,12 @@ class FakeFiller {
   private elementFiller: ElementFiller;
   private clickedElement: HTMLElement | undefined;
   private urlMatchesToBlock: string[];
+  private repeatableFiller: RepeatableFiller;
 
   constructor(options: IFakeFillerOptions, profileIndex = -1) {
     this.elementFiller = new ElementFiller(options, profileIndex);
     this.urlMatchesToBlock = options.urlMatchesToBlock;
+    this.repeatableFiller = new RepeatableFiller(this.fillAllElements.bind(this));
   }
 
   private urlMatchesBlockList(): boolean {
@@ -32,21 +38,34 @@ class FakeFiller {
       return;
     }
 
-    container.querySelectorAll("input:not(:disabled):not([readonly])").forEach((element) => {
+    container.querySelectorAll<HTMLInputElement>("input:not(:disabled):not([readonly])").forEach((element) => {
       this.elementFiller.fillInputElement(element as HTMLInputElement);
     });
 
-    container.querySelectorAll("textarea:not(:disabled):not([readonly])").forEach((element) => {
-      this.elementFiller.fillTextAreaElement(element as HTMLTextAreaElement);
+    container.querySelectorAll<HTMLTextAreaElement>("textarea:not(:disabled):not([readonly])").forEach((element) => {
+      this.elementFiller.fillTextAreaElement(element);
     });
 
-    container.querySelectorAll("select:not(:disabled):not([readonly])").forEach((element) => {
-      this.elementFiller.fillSelectElement(element as HTMLSelectElement);
+    container.querySelectorAll<HTMLSelectElement>("select:not(:disabled):not([readonly])").forEach((element) => {
+      this.elementFiller.fillSelectElement(element);
     });
 
-    container.querySelectorAll("[contenteditable]").forEach((element) => {
-      this.elementFiller.fillContentEditableElement(element as HTMLElement);
+    container.querySelectorAll<HTMLElement>("[contenteditable]").forEach((element) => {
+      this.elementFiller.fillContentEditableElement(element);
     });
+
+    container.querySelectorAll<HTMLElement>(".multiselect").forEach((element) => {
+      this.elementFiller.fillMultiSelectElement(element);
+    });
+
+    // Second parse for unique case where a select element's options changed based on another select element
+    setTimeout(() => {
+      container.querySelectorAll<HTMLSelectElement>("select:not(:disabled):not([readonly])").forEach((element) => {
+        if (!checkSelectHasValue(element)) {
+          this.elementFiller.fillSelectElement(element);
+        }
+      });
+    }, 250);
   }
 
   public setClickedElement(element: HTMLElement | undefined): void {
@@ -54,6 +73,7 @@ class FakeFiller {
   }
 
   public fillAllInputs(): void {
+    this.repeatableFiller.fillAll(document);
     this.fillAllElements(document);
   }
 
@@ -92,6 +112,7 @@ class FakeFiller {
       const form = element.closest("form");
 
       if (form) {
+        this.repeatableFiller.fillAll(form);
         this.fillAllElements(form);
       }
     }

@@ -9,6 +9,7 @@ import Introduction from "src/options/components/custom-fields/Introduction";
 import ProfilesView from "src/options/components/custom-fields/ProfilesView";
 import { IAppState, IFakeFillerOptions, ICustomField } from "src/types";
 
+// eslint-disable-next-line no-undef
 export default function CustomFieldsPage(): JSX.Element {
   const dispatch = useDispatch();
 

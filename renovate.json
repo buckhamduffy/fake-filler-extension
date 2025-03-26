@@ -1,0 +1,14 @@
+{
+  "extends" : [
+    "github>buckhamduffy/renovate-config"
+  ],
+  "baseBranches" : [
+    "main"
+  ],
+  "packageRules" : [
+    {
+      "matchUpdateTypes": ["major"],
+      "enabled": false
+    }
+  ]
+}

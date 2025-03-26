@@ -1,4 +1,4 @@
-import { IFakeFillerOptions, ICustomField } from "src/types";
+import { ICustomField, IFakeFillerOptions } from "src/types";
 
 // spell-checker:disable
 
@@ -25,20 +25,20 @@ const FakeFillerDefaultOptions = (): IFakeFillerOptions => {
     agreeTermsFields: ["agree", "terms", "conditions"],
     confirmFields: ["confirm", "reenter", "retype", "repeat", "secondary"],
     defaultMaxLength: 20,
-    enableContextMenu: true,
+    enableContextMenu: false,
     fieldMatchSettings: {
-      matchLabel: true,
-      matchAriaLabel: true,
-      matchAriaLabelledBy: true,
+      matchLabel: false,
+      matchAriaLabel: false,
+      matchAriaLabelledBy: false,
       matchId: true,
       matchName: true,
-      matchClass: false,
-      matchPlaceholder: false,
+      matchClass: true,
+      matchPlaceholder: true,
       customAttributes: [],
     },
     fields: [],
     ignoredFields: ["captcha", "hipinputtext"],
-    ignoreFieldsWithContent: false,
+    ignoreFieldsWithContent: true,
     ignoreHiddenFields: true,
     passwordSettings: {
       mode: "defined",
@@ -49,6 +49,47 @@ const FakeFillerDefaultOptions = (): IFakeFillerOptions => {
     uploadFiles: true,
     urlMatchesToBlock: ["trello"],
   };
+
+  options.fields.push({
+    type: "regex",
+    name: "Postcode",
+    match: ["postcode", "postalcode"],
+    template: "[34][1-8]{3}",
+  });
+
+  options.fields.push({
+    type: "date",
+    name: "Date of Birth",
+    match: ["birthdate", "dateofbirth"],
+    template: "DD-MM-YYYY",
+    minDate: "1970-01-01",
+    maxDate: "2000-01-01",
+  });
+
+  options.fields.push({
+    type: "date",
+    name: "Expiry Date",
+    match: ["expiry"],
+    template: "DD-MM-YYYY",
+    min: 30,
+    max: 3000,
+  });
+
+  options.fields.push({
+    type: "date",
+    name: "Date",
+    match: ["date\\s+"],
+    template: "DD-MMM-YYYY",
+    max: 0,
+    minDate: "1970-01-01",
+  });
+
+  options.fields.push({
+    type: "regex",
+    name: "Passport #",
+    match: ["passportnumber"],
+    template: "P\\d{7}",
+  });
 
   options.fields.push({
     type: "username",
@@ -63,23 +104,9 @@ const FakeFillerDefaultOptions = (): IFakeFillerOptions => {
   });
 
   options.fields.push({
-    type: "alphanumeric",
-    name: "Middle Initial",
-    match: ["initial"],
-    template: "L",
-  });
-
-  options.fields.push({
     type: "last-name",
     name: "Last Name",
     match: ["lastname", "surname", "secondname", "familyname"],
-  });
-
-  options.fields.push({
-    type: "randomized-list",
-    name: "Suffix",
-    match: ["suffix"],
-    list: ["Sr", "Senior", "Sr.", "Junior", "Jr", "Jr.", "I", "II", "III", "IV"],
   });
 
   options.fields.push(DEFAULT_EMAIL_CUSTOM_FIELD);
@@ -106,19 +133,10 @@ const FakeFillerDefaultOptions = (): IFakeFillerOptions => {
   });
 
   options.fields.push({
-    type: "number",
-    name: "Extension",
-    match: ["extension"],
-    min: 100,
-    max: 999,
-    decimalPlaces: 0,
-  });
-
-  options.fields.push({
     type: "telephone",
-    name: "Telephone Number",
+    name: "Phone Number",
     match: ["phone", "fax", "mobile", "cell"],
-    template: "+1 (XxX) XxX-XxxX",
+    template: "+61 400 XXX XXX",
   });
 
   options.fields.push({
@@ -127,15 +145,6 @@ const FakeFillerDefaultOptions = (): IFakeFillerOptions => {
     match: ["integer", "number", "numeric", "income", "price", "qty", "quantity", "amount", "numof", "noof"],
     min: 1,
     max: 1000,
-    decimalPlaces: 0,
-  });
-
-  options.fields.push({
-    type: "number",
-    name: "Zip Code",
-    match: ["zip"],
-    min: 10000,
-    max: 99999,
     decimalPlaces: 0,
   });
 
@@ -167,15 +176,6 @@ const FakeFillerDefaultOptions = (): IFakeFillerOptions => {
   });
 
   options.fields.push({
-    type: "date",
-    name: "Date",
-    match: ["date"],
-    minDate: "1970-01-01",
-    max: 0,
-    template: "DD-MMM-YYYY",
-  });
-
-  options.fields.push({
     type: "url",
     name: "Website Address",
     match: ["website"],
@@ -189,96 +189,32 @@ const FakeFillerDefaultOptions = (): IFakeFillerOptions => {
   });
 
   options.fields.push({
-    type: "regex",
+    type: "street_address",
     name: "Address Line 1",
     match: ["address", "street"],
-    template:
-      // tslint:disable-next-line:max-line-length
-      "([1-9][0-9][0-9]?) (North |East |West |South |||||)(Green |White |Rocky ||||||||)(Nobel|Fabien|Hague|Oak|Second|First|Cowley|Clarendon|New|Old|Milton) (Avenue|Boulevard|Court|Drive|Extension|Freeway|Lane|Parkway|Road|Street)",
+  });
+
+  options.fields.push({
+    type: "country",
+    name: "Country",
+    match: ["country"],
   });
 
   options.fields.push({
     type: "randomized-list",
     name: "City",
-    match: ["city", "location"],
-    list: [
-      "New York",
-      "Los Angeles",
-      "Chicago",
-      "Houston",
-      "Philadelphia",
-      "Phoenix",
-      "San Antonio",
-      "San Diego",
-      "Dallas",
-      "San Jose",
-      "Austin",
-      "Jacksonville",
-      "San Francisco",
-      "Indianapolis",
-      "Columbus",
-      "Fort Worth",
-      "Charlotte",
-      "Seattle",
-      "Denver",
-      "El Paso",
-      "Detroit",
-      "Washington",
-      "Boston",
-      "Memphis",
-      "Nashville",
-      "Portland",
-      "Oklahoma City",
-      "Las Vegas",
-      "Baltimore",
-      "Louisville",
-      "Milwaukee",
-      "Albuquerque",
-      "Tucson",
-      "Fresno",
-      "Sacramento",
-      "Kansas City",
-      "Long Beach",
-      "Mesa",
-      "Atlanta",
-      "Colorado Springs",
-      "Virginia Beach",
-      "Raleigh",
-      "Omaha",
-      "Miami",
-      "Oakland",
-      "Minneapolis",
-      "Tulsa",
-      "Wichita",
-      "New Orleans",
-      "Arlington",
-    ],
+    match: ["city", "location", "suburb"],
+    list: ["Melbourne", "Sydney", "Brisbane", "Perth", "Adelaide", "Northern Territory", "Tasmania", "Canberra"],
   });
-
-  options.fields.push({
-    type: "regex",
-    name: "P.O. Box",
-    match: ["pobox", "postbox", "postofficebox"],
-    template: "((P\\.O\\.)|(PO)) Box [1-9][0-9]{0,4}",
-  });
-
   return options;
 };
 
 const GetFakeFillerOptions = (): Promise<IFakeFillerOptions> => {
-  const promise = new Promise<IFakeFillerOptions>((resolve) => {
+  return new Promise<IFakeFillerOptions>((resolve) => {
     chrome.storage.local.get("options", (result) => {
-      let options: IFakeFillerOptions;
-      if (result && Object.keys(result).length > 0) {
-        options = result.options;
-      } else {
-        options = FakeFillerDefaultOptions();
-      }
-      resolve(options);
+      resolve({ ...FakeFillerDefaultOptions(), ...result.options });
     });
   });
-
-  return promise;
 };
 
 const CreateContextMenus = (enableContextMenu: boolean): void => {
@@ -352,13 +288,11 @@ const MultipleLinesToArray = (text: string): string[] => {
 };
 
 const GetKeyboardShortcuts = (): Promise<chrome.commands.Command[]> => {
-  const promise = new Promise<chrome.commands.Command[]>((resolve) => {
+  return new Promise<chrome.commands.Command[]>((resolve) => {
     chrome.commands.getAll((result) => {
       resolve(result);
     });
   });
-
-  return promise;
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

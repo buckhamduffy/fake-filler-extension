@@ -1,21 +1,23 @@
+import { Faker, fakerEN_AU as faker } from "@faker-js/faker";
+import moment from "moment";
 import RandExp from "randexp";
+
+import { EMAIL_CONFIG, EmailGenerator, PREVIOUS_VALUES } from "./email-generator";
 
 import * as data from "src/common/dummy-data";
 import { DEFAULT_TELEPHONE_TEMPLATE } from "src/common/helpers";
 
 class DataGenerator {
-  public randomNumber(start: number, end: number, decimalPlaces = 0): number {
-    const min = Math.ceil(start);
-    const max = Math.floor(end);
-    let result = Math.random() * (max - min + 1) + min;
-
-    if (decimalPlaces > 0) {
-      result = Number(result.toFixed(decimalPlaces));
-      result = result > max ? max : result;
-      return result;
+  public randomNumber(min: number, max: number, fractionDigits = 0): number {
+    if (fractionDigits > 0) {
+      return faker.number.float({
+        min,
+        max,
+        fractionDigits,
+      });
     }
 
-    return Math.floor(result);
+    return faker.number.int({ min, max });
   }
 
   public scrambledWord(minLength = 3, maxLength = 15): string {
@@ -184,9 +186,7 @@ class DataGenerator {
   }
 
   public website(): string {
-    const scrambledWord = this.scrambledWord().toLowerCase();
-    const randomDomain = data.domains[this.randomNumber(0, data.domains.length - 1)];
-    return `https://www.${scrambledWord}${randomDomain}`;
+    return faker.internet.url();
   }
 
   public phoneNumber(template: string = DEFAULT_TELEPHONE_TEMPLATE): string {
@@ -206,40 +206,21 @@ class DataGenerator {
     return telephone;
   }
 
-  public date(minimumDate?: Date, maximumDate?: Date): string {
-    let randomYear: number;
-    let randomMonth: number;
-    let randomDay: number;
-
-    if (minimumDate && maximumDate) {
-      const randomDate = new Date(+minimumDate + Math.random() * (+maximumDate - +minimumDate));
-      randomYear = randomDate.getFullYear();
-      randomMonth = randomDate.getMonth() + 1;
-      randomDay = randomDate.getDate();
-    } else {
-      randomYear = this.randomNumber(1970, new Date().getFullYear());
-      randomMonth = this.randomNumber(1, 12);
-      randomDay = this.randomNumber(1, 28);
-    }
-
-    const formattedYear = String(randomYear);
-    const formattedMonth = `0${randomMonth}`.slice(-2);
-    const formattedDay = `0${randomDay}`.slice(-2);
-    return `${formattedYear}-${formattedMonth}-${formattedDay}`;
+  public date(from?: Date, to?: Date, format?: string): string {
+    const date = faker.date.between({ from: from || "1970-01-01", to: to || new Date() });
+    return moment(date).format(format || "YYYY-MM-DD");
   }
 
   public time(): string {
-    const randomHour = `0${this.randomNumber(0, 23)}`.slice(-2);
-    const randomMinute = `0${this.randomNumber(0, 59)}`.slice(-2);
-    return `${randomHour}:${randomMinute}`;
+    return faker.date.anytime().toTimeString();
   }
 
   public month(): string {
-    return `0${this.randomNumber(1, 12)}`.slice(-2);
+    return faker.date.anytime().getMonth().toString();
   }
 
   public year(): string {
-    return String(this.randomNumber(1970, new Date().getFullYear()));
+    return faker.date.between({ from: 1970, to: new Date().getFullYear() }).getFullYear().toString();
   }
 
   public weekNumber(): string {
@@ -247,27 +228,32 @@ class DataGenerator {
   }
 
   public firstName(): string {
-    return data.firstNames[this.randomNumber(0, data.firstNames.length - 1)];
+    return faker.person.firstName();
   }
 
   public lastName(): string {
-    return data.lastNames[this.randomNumber(0, data.lastNames.length - 1)];
+    return faker.person.lastName();
   }
 
   public organizationName(): string {
-    const partOne = this.lastName();
-    const connector = Math.random() > 0.5 ? " and " : " ";
-    const partTwo = this.lastName();
-    const suffix = data.organizationSuffix[this.randomNumber(0, data.organizationSuffix.length - 1)];
-
-    return `${partOne}${connector}${partTwo} ${suffix}`;
+    return faker.company.name();
   }
 
   public color(): string {
-    // 16777215 === FFFFFF in decimal
-    return `#${Math.floor(Math.random() * 16777215)
-      .toString(16)
-      .padStart(6, "0")}`;
+    return faker.color.rgb();
+  }
+
+  public email(): string {
+    return faker.internet.exampleEmail();
+  }
+
+  public faker(): Faker {
+    return faker;
+  }
+
+  public emailConfig(config: EMAIL_CONFIG, previous: Partial<PREVIOUS_VALUES>): string {
+    const emailGenerator = new EmailGenerator(config, previous);
+    return emailGenerator.generate();
   }
 
   public generateRandomStringFromRegExTemplate(regexTemplate: string): string {
@@ -278,12 +264,38 @@ class DataGenerator {
         const regExGenerator = new RandExp(regexTemplate);
         regExGenerator.defaultRange.add(0, 65535);
         randomValue = regExGenerator.gen();
-      } catch (e) {
+      } catch (e: any) {
         randomValue = e.toString();
       }
     }
 
     return randomValue;
+  }
+
+  public streetAddress() {
+    return faker.location.streetAddress();
+  }
+
+  public randomElement<RandomType>(options: RandomType[]): RandomType {
+    // @ts-ignore
+    return faker.helpers.arrayElement(options);
+  }
+
+  public country(): string {
+    return this.randomElement<string>([
+      "Australia",
+      "New Zealand",
+      "Samoa",
+      "Solomon Islands",
+      "Vanuatu",
+      "Timor-Leste",
+      "Papua New Guinea",
+      "Fiji",
+      "Tonga",
+      "Kiribati",
+      "Tuvalu",
+      "Nauru",
+    ]);
   }
 }
 
