@@ -50,15 +50,23 @@ jobs:
         run: bun run build-chrome
 
       - name: Upload Chrome Release
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          zip -r chrome.zip dist/*
+          cd dist
+          zip -r chrome.zip *
+          cd ../
           gh release upload ${{ needs.release.outputs.version }} chrome.zip
 
       - name: Build Firefox
         run: bun run build-firefox
 
       - name: Upload Firefox Release
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          zip -r firefox.zip dist/*
+          cd dist
+          zip -r firefox.zip *
+          cd ../
           gh release upload ${{ needs.release.outputs.version }} firefox.zip
 
