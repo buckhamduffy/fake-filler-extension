@@ -1,6 +1,6 @@
 {
   "name": "fake-filler",
-  "version": "v2.0.0",
+  "version": "3.0.0",
   "description": "Fills all inputs in a page with dummy data.",
   "scripts": {
     "start": "npm run-script watch",
