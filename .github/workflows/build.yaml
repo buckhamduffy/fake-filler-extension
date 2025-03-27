@@ -56,7 +56,7 @@ jobs:
           cd dist
           zip -r chrome.zip *
           cd ../
-          gh release upload ${{ needs.release.outputs.version }} chrome.zip
+          gh release upload ${{ needs.release.outputs.version }} ./dist/chrome.zip
 
       - name: Build Firefox
         run: bun run build-firefox
@@ -68,5 +68,5 @@ jobs:
           cd dist
           zip -r firefox.zip *
           cd ../
-          gh release upload ${{ needs.release.outputs.version }} firefox.zip
+          gh release upload ${{ needs.release.outputs.version }} ./dist/firefox.zip
 
