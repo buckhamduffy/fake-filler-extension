@@ -1,4 +1,10 @@
 - - -
+## v3.0.2 - 2025-03-27
+#### Bug Fixes
+- properly upload build artifacts - (dbc564c) - Aaron Florey
+
+- - -
+
 ## v3.0.1 - 2025-03-26
 #### Bug Fixes
 - build missing gh token - (b86cf99) - Aaron Florey
