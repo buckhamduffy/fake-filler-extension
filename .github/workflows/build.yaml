@@ -78,14 +78,13 @@ jobs:
       - name: Build Firefox
         run: bun run build-firefox
 
-      - name: Upload Firefox Release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          cd dist
-          zip -r firefox.zip *
-          cd ../
-          gh release upload ${{ needs.release.outputs.version }} ./dist/firefox.zip
+      - name: "web-ext build"
+        id: web-ext-build
+        uses: kewisch/action-web-ext@v1
+        with:
+          cmd: build
+          source: dist
+          filename: "bd-fake-filler-${{ needs.release.outputs.version }}.xpi"
 
       - name: "Create source code zip"
         run: git archive --format=zip --output=sources.zip ${{ needs.release.outputs.version }}
@@ -95,16 +94,18 @@ jobs:
         uses: kewisch/action-web-ext@v1
         with:
           cmd: sign
-          source: ./dist/firefox.zip
+          source: ${{ steps.web-ext-build.outputs.target }}
           sourceCode: sources.zip
-          channel: listed
+          channel: unlisted
           approvalNotes: "Please find more information at https://github.com/buckhamduffy/fake-filler-extension"
           apiKey: ${{ secrets.AMO_SIGN_KEY }}
           apiSecret: ${{ secrets.AMO_SIGN_SECRET }}
           timeout: 900000
+          license: MIT
 
       - name: "Attach release assets to release"
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release upload ${{ needs.release.outputs.version }} ${{ steps.web-ext-sign.outputs.target }}
+          gh release upload ${{ needs.release.outputs.version }} ${{ steps.web-ext-build.outputs.target }}
