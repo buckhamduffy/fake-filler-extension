@@ -1,4 +1,10 @@
 - - -
+## v3.1.0 - 2025-05-06
+#### Features
+- add auto signing for firefox - (44a2bdd) - Aaron Florey
+
+- - -
+
 ## v3.0.2 - 2025-03-27
 #### Bug Fixes
 - properly upload build artifacts - (dbc564c) - Aaron Florey
