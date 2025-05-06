@@ -1,4 +1,10 @@
 - - -
+## v3.2.0 - 2025-05-06
+#### Features
+- update licence - (3a01023) - Aaron Florey
+
+- - -
+
 ## v3.1.0 - 2025-05-06
 #### Features
 - add auto signing for firefox - (44a2bdd) - Aaron Florey
