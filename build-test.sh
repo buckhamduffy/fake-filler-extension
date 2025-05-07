@@ -1,7 +1,5 @@
 #!/bin/bash
 touch .env
 bun run build-dev
-rm ~/Downloads/fakefiller.zip
-cd dist/
-zip -r ~/Downloads/fakefiller.zip ./*
-cd ../
+OUTPUT=`readlink -f ~/Downloads`
+./node_modules/.bin/web-ext build --source-dir=./dist --artifacts-dir=$OUTPUT --filename=fakefiller.xpi --overwrite-dest
