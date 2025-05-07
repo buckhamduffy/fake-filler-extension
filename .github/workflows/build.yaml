@@ -78,7 +78,7 @@ jobs:
       - name: Build Firefox
         run: bun run build-firefox
 
-      - name: "web-ext build"
+      - name: web-ext Bundle
         id: web-ext-build
         uses: kewisch/action-web-ext@v1
         with:
@@ -86,10 +86,10 @@ jobs:
           source: dist
           filename: "bd-fake-filler-${{ needs.release.outputs.version }}.xpi"
 
-      - name: "Create source code zip"
+      - name: Create source code zip
         run: git archive --format=zip --output=sources.zip ${{ needs.release.outputs.version }}
 
-      - name: "web-ext sign AMO"
+      - name: web-ext sign AMO
         id: web-ext-sign
         uses: kewisch/action-web-ext@v1
         with:
@@ -103,9 +103,10 @@ jobs:
           timeout: 900000
           license: MIT
 
-      - name: "Attach release assets to release"
+      - name: Attach release assets to release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release upload ${{ needs.release.outputs.version }} ${{ steps.web-ext-sign.outputs.target }}
-          gh release upload ${{ needs.release.outputs.version }} ${{ steps.web-ext-build.outputs.target }}
+          mv ${{ steps.web-ext-sign.outputs.target }} web-ext-artifacts/firefox.xpi
+          mv ${{ steps.web-ext-build.outputs.target }} web-ext-artifacts/firefox-unsigned.xpi
+          gh release upload ${{ needs.release.outputs.version }} web-ext-artifacts/firefox.xpi web-ext-artifacts/firefox-unsigned.xpi

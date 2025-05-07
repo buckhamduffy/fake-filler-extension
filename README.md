@@ -6,12 +6,11 @@ This extension allows you to fill all form inputs (textboxes, textareas, radio b
 
 # Install 
 
-Download the extension from the [Release Page](https://github.com/buckhamduffy/fake-filler-extension/releases) and install it in your browser.
+Download the extension from the [Release Page](https://github.com/buckhamduffy/fake-filler-extension/releases/latest) and install it in your browser.
 
 ### Firefox
-1. Click the extensions icon in the toolbar, and click Manage Extensions
-2. Click the gear icon in the top right corner, and select "Install Add-on From File..."
-3. Navigate to the downloaded file (firefox.zip) and select it
+1. Head to the [Release Page](https://github.com/buckhamduffy/fake-filler-extension/releases/latest)
+2. Click `firefox.xpi` under Assets
 ### Chrome
 TBD
 
