@@ -750,16 +750,12 @@ class ElementFiller {
 
     const selectedOption = this.generator.randomElement<string>(options);
 
-    const input = element.querySelector("input");
-    if (!input) {
-      return;
-    }
-
-    const firstOption = element.querySelector(
+    const optionEl = element.querySelector(
       `li.multiselect-option[aria-label="${selectedOption}"]`
     ) as HTMLElement | null;
-    if (firstOption) {
-      firstOption.click();
+
+    if (optionEl) {
+      optionEl.click();
     }
   }
 

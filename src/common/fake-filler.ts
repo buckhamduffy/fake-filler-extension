@@ -33,39 +33,56 @@ class FakeFiller {
     return false;
   }
 
-  private fillAllElements(container: Document | HTMLElement): void {
+  private async fillAllElements(container: Document | HTMLElement): Promise<void> {
     if (this.urlMatchesBlockList()) {
       return;
     }
 
-    container.querySelectorAll<HTMLInputElement>("input:not(:disabled):not([readonly])").forEach((element) => {
-      this.elementFiller.fillInputElement(element as HTMLInputElement);
-    });
+    const fillers = [
+      {
+        selector: "select:not(:disabled):not([readonly])",
+        callback: (element: HTMLSelectElement) => this.elementFiller.fillSelectElement(element),
+      },
+      {
+        selector: "input:not(:disabled):not([readonly])",
+        callback: (element: HTMLInputElement) => this.elementFiller.fillInputElement(element),
+      },
+      {
+        selector: "textarea:not(:disabled):not([readonly])",
+        callback: (element: HTMLTextAreaElement) => this.elementFiller.fillTextAreaElement(element),
+      },
+      {
+        selector: "[contenteditable]",
+        callback: (element: HTMLElement) => this.elementFiller.fillContentEditableElement(element),
+      },
+      {
+        selector: ".multiselect",
+        callback: (element: HTMLElement) => this.elementFiller.fillMultiSelectElement(element),
+      },
+      {
+        selector: "select:not(:disabled):not([readonly])",
+        callback: (element: HTMLSelectElement) => {
+          if (!checkSelectHasValue(element)) {
+            this.elementFiller.fillSelectElement(element);
+          }
+        },
+      },
+    ];
 
-    container.querySelectorAll<HTMLTextAreaElement>("textarea:not(:disabled):not([readonly])").forEach((element) => {
-      this.elementFiller.fillTextAreaElement(element);
-    });
+    type InputElement = HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | HTMLElement;
 
-    container.querySelectorAll<HTMLSelectElement>("select:not(:disabled):not([readonly])").forEach((element) => {
-      this.elementFiller.fillSelectElement(element);
-    });
+    for (const { selector, callback } of fillers) {
+      const elements = container.querySelectorAll<InputElement>(selector);
 
-    container.querySelectorAll<HTMLElement>("[contenteditable]").forEach((element) => {
-      this.elementFiller.fillContentEditableElement(element);
-    });
+      for (const element of elements) {
+        callback(element);
+        await this.delay(50);
+      }
+    }
+  }
 
-    container.querySelectorAll<HTMLElement>(".multiselect").forEach((element) => {
-      this.elementFiller.fillMultiSelectElement(element);
-    });
-
-    // Second parse for unique case where a select element's options changed based on another select element
-    setTimeout(() => {
-      container.querySelectorAll<HTMLSelectElement>("select:not(:disabled):not([readonly])").forEach((element) => {
-        if (!checkSelectHasValue(element)) {
-          this.elementFiller.fillSelectElement(element);
-        }
-      });
-    }, 250);
+  private delay(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   public setClickedElement(element: HTMLElement | undefined): void {
