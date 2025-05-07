@@ -1,4 +1,10 @@
 - - -
+## v3.2.1 - 2025-05-07
+#### Bug Fixes
+- artifact naming - (001820f) - Aaron Florey
+
+- - -
+
 ## v3.2.0 - 2025-05-06
 #### Features
 - update licence - (3a01023) - Aaron Florey
